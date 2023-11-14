@@ -1,6 +1,7 @@
 import requests
 import config
 import logging
+import pytz
 from datetime import datetime, timedelta
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
@@ -15,6 +16,7 @@ handler = WebhookHandler(config.LINE_CHANNEL_SECRET)
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def get_todays_matches():
     today = datetime.now().strftime('%Y-%m-%d')
     url = f"http://api.football-data.org/v2/matches?dateFrom={today}&dateTo={today}"
@@ -22,13 +24,29 @@ def get_todays_matches():
     response = requests.get(url, headers=headers)
     logging.info(f"API Response: {response.json()}") # Log the API response
 
-    matches_info = "Today's Football Matches:\n\n"
     data = response.json()
+    matches_by_league = {}
+
     if data.get('matches'):
         for match in data['matches']:
-            matches_info += f"{match['homeTeam']['name']} vs {match['awayTeam']['name']} at {match['utcDate']}\n"
+            league_name = match['competition']['name']
+            if league_name not in matches_by_league:
+                matches_by_league[league_name] = []
+
+            # Convert UTC to Thailand Time (UTC+7)
+            utc_time = datetime.fromisoformat(match['utcDate'].rstrip('Z'))
+            thailand_time = utc_time + timedelta(hours=7)
+            formatted_time = thailand_time.strftime('%Y-%m-%d %H:%M:%S')
+
+            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nวันเวลา: {formatted_time}\n\n"
+            matches_by_league[league_name].append(match_info)
+
+        matches_info = "Today's Football Matches:\n\n"
+        for league, matches in matches_by_league.items():
+            matches_info += f"League: {league}\n"
+            matches_info += "".join(matches) + "\n"
     else:
-        matches_info += "No matches found."
+        matches_info = "No matches found."
 
     return matches_info
 
