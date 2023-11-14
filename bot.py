@@ -56,17 +56,33 @@ def get_yesterdays_matches():
     url = f"http://api.football-data.org/v2/matches?dateFrom={date_str}&dateTo={date_str}"
     headers = {'X-Auth-Token': config.FOOTBALL_API_KEY}
     response = requests.get(url, headers=headers)
-    logging.info(f"API Response: {response.json()}")
+    logging.info(f"API Response: {response.json()}") # Log the API response
 
-    matches_info = "Yesterday's Football Results:\n\n"
     data = response.json()
+    matches_by_league = {}
+
     if data.get('matches'):
         for match in data['matches']:
+            league_name = match['competition']['name']
+            if league_name not in matches_by_league:
+                matches_by_league[league_name] = []
+
+            # Convert UTC to Thailand Time (UTC+7)
+            utc_time = datetime.fromisoformat(match['utcDate'].rstrip('Z'))
+            thailand_time = utc_time + timedelta(hours=7)
+            formatted_time = thailand_time.strftime('%Y-%m-%d %H:%M:%S')
+
             # Assuming 'score' is part of the response data structure
             score = f"{match['score']['fullTime']['homeTeam']} - {match['score']['fullTime']['awayTeam']}"
-            matches_info += f"{match['homeTeam']['name']} vs {match['awayTeam']['name']} | Score: {score}\n"
+            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nScore: {score}\nTime: {formatted_time}\n\n"
+            matches_by_league[league_name].append(match_info)
+
+        matches_info = "Yesterday's Football Results:\n\n"
+        for league, matches in matches_by_league.items():
+            matches_info += f"League: {league}\n"
+            matches_info += "".join(matches) + "\n"
     else:
-        matches_info += "No matches found."
+        matches_info = "No matches found."
 
     return matches_info
 
