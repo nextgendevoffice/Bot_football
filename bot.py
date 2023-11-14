@@ -1,7 +1,7 @@
 import requests
 import config
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -32,6 +32,26 @@ def get_todays_matches():
 
     return matches_info
 
+def get_yesterdays_matches():
+    yesterday = datetime.now() - timedelta(days=1)
+    date_str = yesterday.strftime('%Y-%m-%d')
+    url = f"http://api.football-data.org/v2/matches?dateFrom={date_str}&dateTo={date_str}"
+    headers = {'X-Auth-Token': config.FOOTBALL_API_KEY}
+    response = requests.get(url, headers=headers)
+    logging.info(f"API Response: {response.json()}")
+
+    matches_info = "Yesterday's Football Results:\n\n"
+    data = response.json()
+    if data.get('matches'):
+        for match in data['matches']:
+            # Assuming 'score' is part of the response data structure
+            score = f"{match['score']['fullTime']['homeTeam']} - {match['score']['fullTime']['awayTeam']}"
+            matches_info += f"{match['homeTeam']['name']} vs {match['awayTeam']['name']} | Score: {score}\n"
+    else:
+        matches_info += "No matches found."
+
+    return matches_info
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # Get X-Line-Signature header value
@@ -55,6 +75,12 @@ def handle_message(event):
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=matches_info)
+        )
+    elif event.message.text == "ผลบอล":
+        results_info = get_yesterdays_matches()
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text=results_info)
         )
 
 if __name__ == "__main__":
