@@ -7,7 +7,7 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-from apscheduler.schedulers.background import BackgroundScheduler
+
 
 app = Flask(__name__)
 
@@ -117,17 +117,6 @@ def handle_message(event):
             event.reply_token,
             TextSendMessage(text=results_info)
         )
-# Initialize scheduler
-scheduler = BackgroundScheduler()
-
-def scheduled_task():
-    # Logic to check for new results and send notifications
-    results_info = get_yesterdays_matches()  # or another function to fetch latest results
-    line_bot_api.broadcast(TextSendMessage(text=results_info))  # Broadcast to all users
-
-# Add the scheduled task
-scheduler.add_job(scheduled_task, 'interval', minutes=1)  # Adjust the interval as needed
-scheduler.start()
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 8080))
