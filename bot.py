@@ -75,7 +75,7 @@ def get_yesterdays_matches():
 
             # Assuming 'score' is part of the response data structure
             score = f"{match['score']['fullTime']['homeTeam']} - {match['score']['fullTime']['awayTeam']}"
-            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nScore: {score}\nTime: {formatted_time}\n"
+            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nScore: {score}\n"
             matches_by_league[league_name].append(match_info)
 
         matches_info = "Yesterday's Football Results:\n\n"
@@ -126,7 +126,7 @@ def scheduled_task():
     line_bot_api.broadcast(TextSendMessage(text=results_info))  # Broadcast to all users
 
 # Add the scheduled task
-scheduler.add_job(scheduled_task, 'interval', minutes=60)  # Adjust the interval as needed
+scheduler.add_job(scheduled_task, 'interval', minutes=1)  # Adjust the interval as needed
 scheduler.start()
 
 if __name__ == "__main__":
