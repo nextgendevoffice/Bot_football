@@ -7,6 +7,7 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 
@@ -38,7 +39,7 @@ def get_todays_matches():
             thailand_time = utc_time + timedelta(hours=7)
             formatted_time = thailand_time.strftime('%Y-%m-%d %H:%M:%S')
 
-            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nวันเวลา: {formatted_time}\n\n"
+            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nวันเวลา: {formatted_time}\n"
             matches_by_league[league_name].append(match_info)
 
         matches_info = "Today's Football Matches:\n\n"
@@ -46,7 +47,7 @@ def get_todays_matches():
             matches_info += f"League: {league}\n"
             matches_info += "".join(matches) + "\n"
     else:
-        matches_info = "No matches found."
+        matches_info = "วันนี้ไม่มีการแข่งขัน."
 
     return matches_info
 
@@ -74,7 +75,7 @@ def get_yesterdays_matches():
 
             # Assuming 'score' is part of the response data structure
             score = f"{match['score']['fullTime']['homeTeam']} - {match['score']['fullTime']['awayTeam']}"
-            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nScore: {score}\nTime: {formatted_time}\n\n"
+            match_info = f"ทีมเหย้า: {match['homeTeam']['name']} vs {match['awayTeam']['name']} ทีมเยือน\nScore: {score}\nTime: {formatted_time}\n"
             matches_by_league[league_name].append(match_info)
 
         matches_info = "Yesterday's Football Results:\n\n"
@@ -82,7 +83,7 @@ def get_yesterdays_matches():
             matches_info += f"League: {league}\n"
             matches_info += "".join(matches) + "\n"
     else:
-        matches_info = "No matches found."
+        matches_info = "ไม่มีผลการแข่งขัน."
 
     return matches_info
 
@@ -116,6 +117,17 @@ def handle_message(event):
             event.reply_token,
             TextSendMessage(text=results_info)
         )
+# Initialize scheduler
+scheduler = BackgroundScheduler()
+
+def scheduled_task():
+    # Logic to check for new results and send notifications
+    results_info = get_yesterdays_matches()  # or another function to fetch latest results
+    line_bot_api.broadcast(TextSendMessage(text=results_info))  # Broadcast to all users
+
+# Add the scheduled task
+scheduler.add_job(scheduled_task, 'interval', minutes=60)  # Adjust the interval as needed
+scheduler.start()
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 8080))
